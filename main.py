@@ -4,7 +4,11 @@ from pydantic import BaseModel
 
 
 from contextlib import asynccontextmanager
+
 import auth
+import users
+import albums
+import search
 
 @asynccontextmanager
 async def main(app: FastAPI):
@@ -12,3 +16,6 @@ async def main(app: FastAPI):
 
 app = FastAPI(lifespan=main)
 app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(albums.router)
+app.include_router(search.router)
