@@ -14,7 +14,8 @@ import search
 async def main(app: FastAPI):
     yield
 
-app = FastAPI(lifespan=main)
+app = FastAPI(lifespan=main, root_path="/api")
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(albums.router)
