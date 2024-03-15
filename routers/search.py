@@ -1,7 +1,7 @@
 from fastapi import Depends, APIRouter
 
 import schemes
-from auth import verifier
+from routers.auth import verifier
 from typing import Optional
 
 router = APIRouter(

@@ -1,7 +1,7 @@
 from fastapi import Depends, APIRouter
 
 import schemes
-from auth import verifier
+from routers.auth import verifier
 from typing import Optional
 router = APIRouter(
     prefix="/albums",
@@ -12,7 +12,12 @@ router = APIRouter(
 async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
     return session_data
 
-@router.get("/get/self")
+
+@router.get("/get/byUser/self")
+async def users(session_data: schemes.user.Session = Depends(verifier)) -> list[schemes.albums.Album]:
+    return session_data
+
+@router.get("/get/byUser/{key}")
 async def users(key, session_data: schemes.user.Session = Depends(verifier)) -> list[schemes.albums.Album]:
     return session_data
 
