@@ -1,2 +1,4 @@
 albuuums
 Dockerfile
+data/*
+__pycache__

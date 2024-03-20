@@ -1,42 +1,22 @@
 from fastapi import Depends, APIRouter
 
 import schemes
-from routers.auth import verifier
-from typing import Optional
+from father import Father
+father = Father()
+
 router = APIRouter(
     prefix="/albums",
     tags=["Альбомы"]
 )
 
-@router.get("/new")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
+@router.put("/new")
+async def new_album(album: schemes.albums.New = Depends()) -> schemes.albums.Album:
+    return schemes.albums.Album()
 
+@router.get("/{id}")
+async def getting_info(id: str) -> schemes.albums.Album:
+    return schemes.albums.Album()
 
-@router.get("/get/byUser/self")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> list[schemes.albums.Album]:
-    return session_data
-
-@router.get("/get/byUser/{key}")
-async def users(key, session_data: schemes.user.Session = Depends(verifier)) -> list[schemes.albums.Album]:
-    return session_data
-
-@router.get("/get/{key}")
-async def users(key, session_data: schemes.user.Session = Depends(verifier)) -> schemes.User:
-    return session_data
-
-@router.get("/drop/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
-
-@router.get("/add-editor/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
-
-@router.get("/add-viever/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
-
-@router.get("/set-privileges/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
+@router.get("/get-files/{id}")
+async def getting_files(id: str) -> schemes.albums.Album:
+    return schemes.albums.Album()

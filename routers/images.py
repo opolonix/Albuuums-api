@@ -1,22 +1,23 @@
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, HTTPException
+from typing import Annotated
 
 import schemes
-from routers.auth import verifier
-from typing import Optional
+from father import Father
+father = Father()
 
 router = APIRouter(
-    prefix="/images",
-    tags=["Изображение"]
+    prefix="/files",
+    tags=["Файлы (картинки, видео и тд)"]
 )
 
-@router.get("/get/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
+@router.get("/{id}")
+async def get_file(id: str) -> schemes.files.File:
+    return schemes.files.File()
 
-@router.post("/upload")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
+@router.put("/upload")
+async def upload_file() -> schemes.files.File:
+    return schemes.files.File()
 
-@router.get("/drop/{key}")
-async def users(session_data: schemes.user.Session = Depends(verifier)) -> schemes.albums.Album:
-    return session_data
+@router.delete("/drop/{id}")
+async def drop_file(id):
+    return HTTPException(status_code=200, detail="Successfully deleted")

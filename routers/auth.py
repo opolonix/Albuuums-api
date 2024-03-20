@@ -1,94 +1,78 @@
-from typing import Annotated, Optional
-from fastapi import Depends, APIRouter
-from pydantic import BaseModel
-
-from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
+from typing import Annotated
+from fastapi import Depends, APIRouter, HTTPException
 
 import schemes
-from fastapi_sessions.session_verifier import SessionVerifier
-from fastapi import HTTPException
-from uuid import UUID
-from fastapi_sessions.backends.implementations import InMemoryBackend
+from father import Father
+import re
+import secrets
 
 from uuid import uuid4
-from fastapi import FastAPI, Response
+from fastapi import Response, Request
 
 router = APIRouter(
     prefix="/auth",
     tags=["Авторизация"]
 )
+father = Father()
+db = father.db
 
-cookie_params = CookieParameters()
+@router.get("/signin")
+async def signin(user: Annotated[schemes.users.signin, Depends()], response: Response, request: Request) -> schemes.users.User:
 
-cookie = SessionCookie(
-    cookie_name="cookie",
-    identifier="general_verifier",
-    auto_error=True,
-    secret_key="DONOTUSE",
-    cookie_params=cookie_params,
-)
+    # if not re.fullmatch(r"([a-z0-9._-]+@[a-z0-9._-]+\.[a-z0-9_-]+)", user.email, re.I): # если имейл невалидный то сразу отсекает
+    #     raise HTTPException(status_code=403, detail="Аccess is denied")
+
+    if token := request.cookies.get("x-auth-key"): # не дает спамить созданием сессий 
+        if user_id := father.is_authorized(token): # возвращает уже существующего пользователя согласно иду в сессии
+            return user_id
+        else: 
+            response.delete_cookie("x-auth-key")
 
 
-backend = InMemoryBackend[UUID, schemes.user.Session]()
+    """тут проверка на пользователя... должна быть"""
 
-class BasicVerifier(SessionVerifier[UUID, schemes.user.Session]):
-    def __init__(
-        self,
-        *,
-        identifier: str,
-        auto_error: bool,
-        backend: InMemoryBackend[UUID, schemes.user.Session],
-        auth_http_exception: HTTPException,
-    ):
-        self._identifier = identifier
-        self._auto_error = auto_error
-        self._backend = backend
-        self._auth_http_exception = auth_http_exception
 
-    @property
-    def identifier(self):
-        return self._identifier
-
-    @property
-    def backend(self):
-        return self._backend
-
-    @property
-    def auto_error(self):
-        return self._auto_error
-
-    @property
-    def auth_http_exception(self):
-        return self._auth_http_exception
-
-    def verify_session(self, model: schemes.user.Session) -> bool:
-        """If the session exists, it is valid"""
-        return True
+    token = secrets.token_hex(32)
     
-verifier = BasicVerifier(
-    identifier="general_verifier",
-    auto_error=True,
-    backend=backend,
-    auth_http_exception=HTTPException(status_code=403, detail="invalid session"),
-)
-@router.post("/signin/LoginPassword")
-async def users(user: Annotated[schemes.signin.LoginPassword, Depends()], response: Response) -> schemes.User:
+    await db.execute("INSERT INTO sessions (session_id, user_id) VALUES (?, ?);", (token, 228))
+    await db.commit()
+
+    response.set_cookie(key="x-auth-key", value=token)
+
+    return schemes.users.User()
+
+@router.post("/signup")
+async def signup(user: Annotated[schemes.users.signup, Depends()], response: Response, request: Request) -> schemes.users.User:
     
-    session = uuid4()
-    data = schemes.user.Session(username="228")
-    await backend.create(session, data)
-
-    cookie.attach_to_response(response, session)
-
-    return schemes.User(key="228", name="228")
-
-@router.post("/signup/LoginPassword")
-async def users(user: Annotated[schemes.signup.LoginPassword, Depends()], response: Response) -> schemes.User:
+    if not re.fullmatch(r"([a-z0-9._-]+@[a-z0-9._-]+\.[a-z0-9_-]+)", user.email, re.I): # валидация на верно введенный имейл
+        raise HTTPException(status_code=400, detail="Invalid email")
     
-    session = uuid4()
-    data = schemes.user.Session(username="228")
-    await backend.create(session, data)
+    if not re.fullmatch(r"([a-z][a-z0-9_]{0,15})", user.username, re.I): # валидация на юзернейм
+        raise HTTPException(status_code=400, detail="Invalid username")
 
-    cookie.attach_to_response(response, session)
+    if token := request.cookies.get("x-auth-key"): # не дает спамить созданием сессий 
+        if user_id := father.is_authorized(token): # возвращает уже существующего пользователя согласно иду в сессии
+            return user_id
+        else: 
+            response.delete_cookie("x-auth-key")
 
-    return schemes.User(key="228", name="228")
+
+    """Генерация пользователя в бд"""
+
+
+    token = secrets.token_hex(32)
+
+    await db.execute("INSERT INTO sessions (session_id, user_id) VALUES (?, ?);", (token, 228))
+    await db.commit()
+
+    response.set_cookie(key="x-auth-key", value=token)
+
+    return schemes.users.User()
+
+@router.get("/logout")
+async def logout(response: Response, request: Request):
+
+    if token := request.cookies.get("x-auth-key"): # проверяет существует ли сессия и тогда делает логаут
+        await db.execute("DELETE FROM sessions WHERE session_id = ?;", (token))
+        await db.commit()
+        response.delete_cookie("x-auth-key")

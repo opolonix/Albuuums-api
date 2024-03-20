@@ -1,32 +1,56 @@
 from typing import Optional
 from pydantic import BaseModel
 
-class User(BaseModel):
-    key: str
-    name: str
+import datetime
 
-class user:
-    class Session(BaseModel):
+class users:
+
+    class User(BaseModel):
+        id: int
         username: str
-    
-class signin:
-    class LoginPassword(BaseModel):
-        login: str
-        password: str
+        avatar_id: str
+        email: str
+        name: str
+        status: int
+        personal_album: str
 
-class signup:
-    class LoginPassword(BaseModel):
-        login: str
+    class signin(BaseModel):
+        email: str
         password: str
-        key: str
-        first_name: str
-        last_name: Optional[str | None] = None
+    
+    class signup(BaseModel):
+        name: str
+        email: str
+        password: str
+        username: str = None
+
+class files:
+    class File(BaseModel):
+        id: int
+        name: str = None
+        create_from: datetime.datetime
+        create_by: int
+        file_extension: str
+        description: str = None
+
+    class Drop(BaseModel):
+        album_id: str
+        file_id: str
+        create_from: datetime.datetime
+        create_by: int
 
 class albums:
-    class Album(BaseModel):
-        key: str
-        photos_count: int
-        
-    class NewAlbum(BaseModel):
+    class New(BaseModel):
         name: str
+        description: str = None
         private: bool = True
+
+    class Album(BaseModel):
+        id: str
+        photos_count: int
+        private: bool
+        description: str = None
+
+        images_count: int
+        videos_count: int
+        other_count: int
