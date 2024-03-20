@@ -2,3 +2,4 @@ albuuums
 Dockerfile
 data/*
 __pycache__
+routers/__pycache__
