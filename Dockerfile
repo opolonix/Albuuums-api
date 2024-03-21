@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 COPY . /app
 WORKDIR /app
-ENV PYTHONPATH=/core
 
 RUN pip install -r requirements.txt
 
