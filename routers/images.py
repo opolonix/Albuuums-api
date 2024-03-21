@@ -1,8 +1,8 @@
 from fastapi import Depends, APIRouter, HTTPException
 from typing import Annotated
 
-import schemes
-from father import Father
+import core.schemes as schemes
+from core.father import Father
 father = Father()
 
 router = APIRouter(

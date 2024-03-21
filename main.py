@@ -1,30 +1,26 @@
 from fastapi import FastAPI
-
+import aiosqlite
 from contextlib import asynccontextmanager
 
-from father import Father
-import schemes
-import aiosqlite
+from core.father import Father
+from core import schemes
+from core.config import MYSQLSERVER_URL
 
-    
+from models.base import Base
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 @asynccontextmanager
-async def main(app: FastAPI):
+async def lifespan(app: FastAPI):
 
-    open("data/sessions.db","a+").close()
+    Father().db = await aiosqlite.connect("data/sessions.db")
 
-    db = await aiosqlite.connect("data/sessions.db")
+    Father().engine = create_engine(MYSQLSERVER_URL)
+    Father().sessionmaker = sessionmaker(bind=Father().engine)
+    Father().session = Father().sessionmaker()
 
-    await db.execute("""CREATE TABLE IF NOT EXISTS sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        user_id INTEGER NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );""")
-    
-    await db.commit()
-
-    Father().db = db
+    Base.metadata.create_all(bind=Father().engine)
 
     import routers.auth as auth
     import routers.users as users
@@ -37,10 +33,11 @@ async def main(app: FastAPI):
     app.include_router(albums.router)
 
     yield
+        
+    await Father().db.close()
+    Father().sessionmaker.close_all()
 
-    await db.close()
+app = FastAPI(root_path="/api", lifespan=lifespan)
 
-
-app = FastAPI(root_path="/api", lifespan=main)
 Father().app = app
 Father().schemes = schemes

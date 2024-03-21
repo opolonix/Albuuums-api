@@ -8,11 +8,11 @@ class users:
     class User(BaseModel):
         id: int
         username: str
-        avatar_id: str
+        avatar_id: str | None
         email: str
         name: str
         status: int
-        personal_album: str
+        base_album: str
 
     class signin(BaseModel):
         email: str
@@ -22,16 +22,16 @@ class users:
         name: str
         email: str
         password: str
-        username: str = None
+        username: str | None = None
 
 class files:
     class File(BaseModel):
         id: int
-        name: str = None
+        name: str | None = None
         create_from: datetime.datetime
         create_by: int
         file_extension: str
-        description: str = None
+        description: str | None = None
 
     class Drop(BaseModel):
         album_id: str
@@ -42,14 +42,14 @@ class files:
 class albums:
     class New(BaseModel):
         name: str
-        description: str = None
+        description: str | None = None
         private: bool = True
 
     class Album(BaseModel):
         id: str
         photos_count: int
         private: bool
-        description: str = None
+        description: str | None = None
 
         images_count: int
         videos_count: int

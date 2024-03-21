@@ -1,7 +1,7 @@
 from fastapi import Depends, APIRouter
 
-import schemes
-from father import Father
+import core.schemes as schemes
+from core.father import Father
 father = Father()
 
 router = APIRouter(

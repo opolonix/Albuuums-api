@@ -1,4 +1,5 @@
-albuuums
+venv
 __pycache__
 routers/__pycache__
 data/*
+core/config.py
