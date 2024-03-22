@@ -49,7 +49,7 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
     # Пример получения результатов запроса
     token = secrets.token_hex(32)
     
-    await db.execute("INSERT INTO sessions (token, user_id) VALUES (?, ?);", (token, 228))
+    await db.execute(f"INSERT INTO sessions (token, user_id) VALUES ('{token}', '{user.id}');")
     await db.commit()
 
     response.set_cookie(key="x-auth-key", value=token)
@@ -111,7 +111,7 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
 
     token = secrets.token_hex(32)
 
-    await db.execute("INSERT INTO sessions (token, user_id) VALUES (?, ?);", (token, new_user.id))
+    await db.execute(f"INSERT INTO sessions (token, user_id) VALUES ('{token}', '{new_user.id}');")
     await db.commit()
 
     """Создание базового альбома"""
@@ -140,6 +140,6 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
 async def logout(response: Response, request: Request):
 
     if token := request.cookies.get("x-auth-key"): # проверяет существует ли сессия и тогда делает логаут
-        await db.execute("DELETE FROM sessions WHERE token = ?;", (token))
+        await db.execute(f"DELETE FROM sessions WHERE token = {token};")
         await db.commit()
         response.delete_cookie("x-auth-key")
