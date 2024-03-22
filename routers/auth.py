@@ -23,7 +23,7 @@ father = Father()
 db = father.db
 
 @router.get("/signin")
-async def signin(user: Annotated[schemes.users.signin, Depends()], response: Response, request: Request) -> schemes.users.User:
+async def signin(user: Annotated[schemes.users.signin, Depends()], response: Response, request: Request) -> schemes.users.authUser:
 
     # if not re.fullmatch(r"([a-z0-9._-]+@[a-z0-9._-]+\.[a-z0-9_-]+)", user.email, re.I): # если имейл невалидный то сразу отсекает
     #     raise HTTPException(status_code=403, detail="Аccess is denied")
@@ -32,7 +32,7 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
     if id_auth:
         exist: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
         if exist: 
-            return schemes.users.User(id=exist.id, name=exist.name, username=exist.username, avatar_id=exist.avatar_id, email=exist.email, status=exist.status, base_album=exist.base_album)
+            return schemes.users.authUser(cookie=token, id=exist.id, name=exist.name, username=exist.username, avatar_id=exist.avatar_id, email=exist.email, status=exist.status, base_album=exist.base_album)
         else: response.delete_cookie("x-auth-key")
     elif token: response.delete_cookie("x-auth-key")
 
@@ -57,7 +57,7 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
     return schemes.users.authUser(cookie=token, id=user.id, name=user.name, username=user.username, avatar_id=user.avatar_id, email=user.email, status=user.status, base_album=user.base_album)
 
 @router.post("/signup")
-async def signup(user: Annotated[schemes.users.signup, Depends()], response: Response, request: Request) -> schemes.users.User:
+async def signup(user: Annotated[schemes.users.signup, Depends()], response: Response, request: Request) -> schemes.users.authUser:
     
     if not re.fullmatch(r"([a-z0-9._-]+@[a-z0-9._-]+\.[a-z0-9_-]+)", user.email, re.I): # валидация на верно введенный имейл
         raise HTTPException(status_code=400, detail="Invalid email")
