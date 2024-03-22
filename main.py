@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     Father().sessionmaker = sessionmaker(bind=Father().engine)
     Father().session = Father().sessionmaker()
 
-    Base.metadata.create_all(bind=Father().engine)
+    # Base.metadata.create_all(bind=Father().engine)
 
     import routers.auth as auth
     import routers.users as users

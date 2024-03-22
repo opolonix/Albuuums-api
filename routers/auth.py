@@ -27,7 +27,7 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
 
     # if not re.fullmatch(r"([a-z0-9._-]+@[a-z0-9._-]+\.[a-z0-9_-]+)", user.email, re.I): # если имейл невалидный то сразу отсекает
     #     raise HTTPException(status_code=403, detail="Аccess is denied")
-    token = request.cookies.get("x-auth-key")
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
     id_auth = await father.is_authorized(token)
     if id_auth:
         exist: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
@@ -54,7 +54,7 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
 
     response.set_cookie(key="x-auth-key", value=token)
 
-    return schemes.users.User(id=user.id, name=user.name, username=user.username, avatar_id=user.avatar_id, email=user.email, status=user.status, base_album=user.base_album)
+    return schemes.users.authUser(cookie=token, id=user.id, name=user.name, username=user.username, avatar_id=user.avatar_id, email=user.email, status=user.status, base_album=user.base_album)
 
 @router.post("/signup")
 async def signup(user: Annotated[schemes.users.signup, Depends()], response: Response, request: Request) -> schemes.users.User:
@@ -80,13 +80,14 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
         username = str(secrets.choice(string.ascii_letters)) + ''.join(secrets.choice(string.digits) for _ in range(7))
         user.username = str(username)
 
-    token = request.cookies.get("x-auth-key")
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+    
     id_auth = await father.is_authorized(token)
 
     if id_auth:
         fuser: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
         if fuser: 
-            return schemes.users.User(id=fuser.id, name=fuser.name, username=fuser.username, avatar_id=fuser.avatar_id, email=fuser.email, status=fuser.status, base_album=fuser.base_album)
+            return schemes.users.authUser(cookie=token, id=fuser.id, name=fuser.name, username=fuser.username, avatar_id=fuser.avatar_id, email=fuser.email, status=fuser.status, base_album=fuser.base_album)
         else: response.delete_cookie("x-auth-key")
     elif token: response.delete_cookie("x-auth-key")
 
@@ -134,12 +135,12 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
     "Установка куки"
     response.set_cookie(key="x-auth-key", value=token)
 
-    return schemes.users.User(id=new_user.id, name=new_user.name, username=new_user.username, avatar_id=new_user.avatar_id, email=new_user.email, status=new_user.status, base_album=new_user.base_album)
+    return schemes.users.authUser(cookie=token, id=new_user.id, name=new_user.name, username=new_user.username, avatar_id=new_user.avatar_id, email=new_user.email, status=new_user.status, base_album=new_user.base_album)
 
 @router.get("/logout")
 async def logout(response: Response, request: Request):
-
-    if token := request.cookies.get("x-auth-key"): # проверяет существует ли сессия и тогда делает логаут
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+    if token: # проверяет существует ли сессия и тогда делает логаут
         await db.execute(f"DELETE FROM sessions WHERE token = '{token}';")
         await db.commit()
         response.delete_cookie("x-auth-key")

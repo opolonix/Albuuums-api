@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.get("/get-me")
 async def get_yourself(request: Request, response: Response) -> schemes.users.User:
-    token = request.cookies.get("x-auth-key")
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -25,7 +25,7 @@ async def get_yourself(request: Request, response: Response) -> schemes.users.Us
 
 @router.get("/edit-me")
 async def edit_personal_data(data: Annotated[schemes.users.Edit, Depends()], request: Request, response: Response) -> schemes.users.User:
-    token = request.cookies.get("x-auth-key")
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
 
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
@@ -53,6 +53,5 @@ async def get_user(username, request: Request, response: Response) -> schemes.us
     user: base.User = Father().session.query(base.User).filter(base.User.username == username).first()
     if user: 
         return schemes.users.User(id=user.id, name=user.name, username=user.username, avatar_id=user.avatar_id, email=user.email, status=user.status, base_album=user.base_album)
-    else: response.delete_cookie("x-auth-key")
     raise HTTPException(status_code=400, detail="Username does not exist")
 

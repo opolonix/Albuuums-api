@@ -6,3 +6,4 @@ class Base(DeclarativeBase):
 
 from .users import User
 from .albums import albumsAccess, albumsMeta, get_album, get_album_tags
+from .files import File

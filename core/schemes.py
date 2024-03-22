@@ -13,6 +13,16 @@ class users:
         status: int
         base_album: int
 
+    class authUser(BaseModel):
+        id: int
+        cookie: str
+        username: str
+        avatar_id: int | None
+        email: str
+        name: str
+        status: int
+        base_album: int
+
     class Edit(BaseModel):
         username: str | None = None
         avatar_id: int | None = None
@@ -49,14 +59,17 @@ class albums:
         description: str | None = None
         private: bool = True
 
+    
     class Album(BaseModel):
         id: int
         album_cover_id: int | None = None
         private: bool = True
         editor: bool = False
+        name: str | None = None
         description: str | None = None
     
         tags: List['albums.Tags']
+        
 
     class fullAlbum(BaseModel):
         id: int
@@ -66,7 +79,7 @@ class albums:
         description: str | None = None
         
         files: List['albums.File']
-        tags: List['albums.Tags']
+        tags: List['albums.Tags'] = []
 
     class Albums(BaseModel):
         albums: List['albums.Album']
