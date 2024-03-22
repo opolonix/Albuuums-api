@@ -1,5 +1,4 @@
 venv
 Dockerfile
 data/*
-__pycache__
-routers/__pycache__
+**/__pycache__

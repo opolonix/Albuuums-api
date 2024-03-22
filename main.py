@@ -41,3 +41,5 @@ app = FastAPI(root_path="/api", lifespan=lifespan)
 
 Father().app = app
 Father().schemes = schemes
+
+"uvicorn main:app --reload" # в терминал для тестов

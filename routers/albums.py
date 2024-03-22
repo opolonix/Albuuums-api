@@ -9,14 +9,14 @@ router = APIRouter(
     tags=["Альбомы"]
 )
 
-@router.put("/new")
-async def new_album(album: schemes.albums.New = Depends()) -> schemes.albums.Album:
-    return schemes.albums.Album()
+@router.post("/new")
+async def new_album(album: schemes.albums.New = Depends()) -> schemes.albums.fullAlbum:
+    return schemes.albums.fullAlbum()
 
 @router.get("/{id}")
-async def getting_info(id: str) -> schemes.albums.Album:
-    return schemes.albums.Album()
+async def getting_info(id: str) -> schemes.albums.fullAlbum:
+    return schemes.albums.fullAlbum()
 
-@router.get("/get-files/{id}")
-async def getting_files(id: str) -> schemes.albums.Album:
+@router.get("/get-my-albums")
+async def getting_your_albums(id: str) -> schemes.albums.Albums:
     return schemes.albums.Album()

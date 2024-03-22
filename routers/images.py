@@ -10,11 +10,15 @@ router = APIRouter(
     tags=["Файлы (картинки, видео и тд)"]
 )
 
-@router.get("/{id}")
+@router.get("/{file_id}")
 async def get_file(id: str) -> schemes.files.File:
     return schemes.files.File()
 
-@router.put("/upload")
+@router.get("/album/{album_id}/id/{file_id}")
+async def get_file_from_album(album_id: int, file_id: int) -> schemes.files.File:
+    return schemes.files.File()
+
+@router.post("/upload")
 async def upload_file() -> schemes.files.File:
     return schemes.files.File()
 
