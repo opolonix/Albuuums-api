@@ -11,11 +11,11 @@ import pytz
 def get_album(album_id: int):
     class Album(Base):
         __tablename__ = f"albumFiles_{album_id}"
-        __table_args__ = {'extend_existing': True}
+        __table_args__ = {'extend_existing': True, 'mysql_charset': 'utf8mb4'}
 
         id = Column(Integer, primary_key=True, autoincrement=True)
         file_id = Column(Integer)
-        name = Column(String(128), default=None)
+        name = Column(String(128, collation='utf8mb4_general_ci'), default=None)
         type = Column(String(16))
         pinned_at = Column(DateTime, default=lambda: datetime.now(pytz.timezone('Europe/Moscow')))
         pinned_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
@@ -26,11 +26,11 @@ def get_album(album_id: int):
 def get_album_tags(album_id: int):
     class AlbumTags(Base):
         __tablename__ = f"albumTags_{album_id}"
-        __table_args__ = {'extend_existing': True}
+        __table_args__ = {'extend_existing': True, 'mysql_charset': 'utf8mb4'}
 
         id = Column(Integer, primary_key=True, autoincrement=True)
         file_album_id = Column(Integer, ForeignKey(f'albumFiles_{album_id}.id', ondelete='CASCADE'), comment="Не конкретно файл айди, а айди записи внутри альбома для этого файла")
-        tag = Column(String(64))
+        tag = Column(String(64, collation='utf8mb4_general_ci'))
 
         added_at = Column(DateTime, default=datetime.now(pytz.timezone('Europe/Moscow')))
         added_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
@@ -57,5 +57,5 @@ class albumsMeta(Base):
     private: bool = Column(BOOLEAN, default=True)
     created_at: datetime = Column(DateTime, default=datetime.now(pytz.timezone('Europe/Moscow')))
     created_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
-    name = Column(String(128))
-    description = Column(String(512), default=None)
+    name = Column(String(128, collation='utf8mb4_general_ci'))
+    description = Column(String(512, collation='utf8mb4_general_ci'), default=None)

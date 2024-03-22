@@ -30,9 +30,9 @@ async def signin(user: Annotated[schemes.users.signin, Depends()], response: Res
     token = request.cookies.get("x-auth-key")
     id_auth = await father.is_authorized(token)
     if id_auth:
-        user: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
-        if user: 
-            return schemes.users.User(id=user.id, name=user.name, username=user.username, avatar_id=user.avatar_id, email=user.email, status=user.status, base_album=user.base_album)
+        exist: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
+        if exist: 
+            return schemes.users.User(id=exist.id, name=exist.name, username=exist.username, avatar_id=exist.avatar_id, email=exist.email, status=exist.status, base_album=exist.base_album)
         else: response.delete_cookie("x-auth-key")
     elif token: response.delete_cookie("x-auth-key")
 
