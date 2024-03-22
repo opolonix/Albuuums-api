@@ -32,9 +32,9 @@ async def edit_personal_data(data: Annotated[schemes.users.Edit, Depends()], req
 
     if data.avatar_id: user.avatar_id = data.avatar_id
     if data.username: 
-        if not re.fullmatch(r"([a-z][a-z0-9_]{0,15})", user.username, re.I): # валидация на юзернейм
+        if not re.fullmatch(r"([a-z][a-z0-9_]{0,15})", data.username, re.I): # валидация на юзернейм
             raise HTTPException(status_code=400, detail="Username is invalid")
-        if Father().session.query(base.User).filter(base.User.username == user.username).first():
+        if Father().session.query(base.User).filter(base.User.username == data.username).first():
             raise HTTPException(status_code=400, detail="Username already exists")
         user.username = data.username
     if data.name: 

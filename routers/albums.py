@@ -26,7 +26,7 @@ async def new_album(album: Annotated[schemes.albums.New, Depends()], response: R
         created_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
         description = Column(String(512), default=None)
     """
-
+    album.name
     meta = base.albumsMeta(private=album.private, created_by=user.id, description=album.description)
     father.session.add(meta)
     father.session.commit()

@@ -57,4 +57,5 @@ class albumsMeta(Base):
     private: bool = Column(BOOLEAN, default=True)
     created_at: datetime = Column(DateTime, default=datetime.now(pytz.timezone('Europe/Moscow')))
     created_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    name = Column(String(128))
     description = Column(String(512), default=None)

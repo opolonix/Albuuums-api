@@ -140,6 +140,6 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
 async def logout(response: Response, request: Request):
 
     if token := request.cookies.get("x-auth-key"): # проверяет существует ли сессия и тогда делает логаут
-        await db.execute(f"DELETE FROM sessions WHERE token = {token};")
+        await db.execute(f"DELETE FROM sessions WHERE token = '{token}';")
         await db.commit()
         response.delete_cookie("x-auth-key")
