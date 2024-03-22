@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from core.father import Father
 from core import schemes
 from core.config import MYSQLSERVER_URL
+from fastapi.middleware.cors import CORSMiddleware
 
 from models.base import Base
 
@@ -38,6 +39,14 @@ async def lifespan(app: FastAPI):
     Father().sessionmaker.close_all()
 
 app = FastAPI(root_path="/api", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешаем запросы с любого домена
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 Father().app = app
 Father().schemes = schemes

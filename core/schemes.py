@@ -7,15 +7,15 @@ class users:
     class User(BaseModel):
         id: int
         username: str
-        avatar_id: str | None
+        avatar_id: int | None
         email: str
         name: str
         status: int
-        base_album: str
+        base_album: int
 
     class Edit(BaseModel):
         username: str | None = None
-        avatar_id: str | None = None
+        avatar_id: int | None = None
         name: str | None = None
 
     class signin(BaseModel):
@@ -38,8 +38,8 @@ class files:
         description: str | None = None
 
     class Drop(BaseModel):
-        album_id: str
-        file_id: str
+        album_id: int
+        file_id: int
         created_from: datetime
         created_by: int
 
@@ -50,8 +50,8 @@ class albums:
         private: bool = True
 
     class Album(BaseModel):
-        id: str
-        album_cover_id: int
+        id: int
+        album_cover_id: int | None = None
         private: bool = True
         editor: bool = False
         description: str | None = None
@@ -59,8 +59,8 @@ class albums:
         tags: List['albums.Tags']
 
     class fullAlbum(BaseModel):
-        id: str
-        album_cover_id: int
+        id: int
+        album_cover_id: int | None = None
         private: bool = True
         editor: bool = False
         description: str | None = None
@@ -69,13 +69,6 @@ class albums:
         tags: List['albums.Tags']
 
     class Albums(BaseModel):
-        id: str
-        private: bool = True
-        description: str | None = None
-
-        images_count: int
-        videos_count: int
-        other_count: int
         albums: List['albums.Album']
 
     class Tags(BaseModel):

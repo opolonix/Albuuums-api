@@ -16,4 +16,4 @@ class User(Base):
     avatar_id = Column(String(15))
     email = Column(String(63))
     status = Column(Integer)
-    base_album = Column(String(15))
+    base_album = Column(String(15), default=0)

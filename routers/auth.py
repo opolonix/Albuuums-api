@@ -82,6 +82,7 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
 
     token = request.cookies.get("x-auth-key")
     id_auth = await father.is_authorized(token)
+
     if id_auth:
         fuser: base.User = Father().session.query(base.User).filter(base.User.id == id_auth).first()
         if fuser: 
@@ -90,21 +91,20 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
     elif token: response.delete_cookie("x-auth-key")
 
 
+
+
     """Генерация пользователя в бд"""
 
     
     password = hashlib.sha512(bytes(user.password.encode('utf-8'))).hexdigest()
-    album_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(15))
     
-
     new_user = base.User(
         password = password,
         username = user.username,
         avatar_id = None,
         email = user.email,
         name = user.name,
-        status = 0,
-        base_album = album_id
+        status = 0
     )
     Father().session.add(new_user)
     Father().session.commit()
@@ -114,6 +114,24 @@ async def signup(user: Annotated[schemes.users.signup, Depends()], response: Res
     await db.execute("INSERT INTO sessions (token, user_id) VALUES (?, ?);", (token, new_user.id))
     await db.commit()
 
+    """Создание базового альбома"""
+
+    meta = base.albumsMeta(private=True, created_by=new_user.id, description="Basic album")
+    father.session.add(meta)
+    father.session.commit()
+
+    access = base.albumsAccess(album_id=meta.id, client_id=new_user.id, editor=True, accessed_by=new_user.id)
+    father.session.add(access)
+    father.session.commit()
+
+    new_user.base_album = meta.id
+
+    base.get_album(meta.id) # там внутри создаются доп таблицы с файлами и тегами
+    base.get_album_tags(meta.id)
+
+    father.session.commit()
+
+    "Установка куки"
     response.set_cookie(key="x-auth-key", value=token)
 
     return schemes.users.User(id=new_user.id, name=new_user.name, username=new_user.username, avatar_id=new_user.avatar_id, email=new_user.email, status=new_user.status, base_album=new_user.base_album)

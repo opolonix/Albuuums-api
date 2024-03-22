@@ -11,12 +11,13 @@ import pytz
 def get_album(album_id: int):
     class Album(Base):
         __tablename__ = f"albumFiles_{album_id}"
+        __table_args__ = {'extend_existing': True}
 
         id = Column(Integer, primary_key=True, autoincrement=True)
         file_id = Column(Integer)
         name = Column(String(128), default=None)
         type = Column(String(16))
-        pinned_at = Column(DateTime, default=datetime.now(pytz.timezone('Europe/Moscow')))
+        pinned_at = Column(DateTime, default=lambda: datetime.now(pytz.timezone('Europe/Moscow')))
         pinned_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
 
     Album.metadata.create_all(bind=Father().engine)
@@ -25,6 +26,7 @@ def get_album(album_id: int):
 def get_album_tags(album_id: int):
     class AlbumTags(Base):
         __tablename__ = f"albumTags_{album_id}"
+        __table_args__ = {'extend_existing': True}
 
         id = Column(Integer, primary_key=True, autoincrement=True)
         file_album_id = Column(Integer, ForeignKey(f'albumFiles_{album_id}.id', ondelete='CASCADE'), comment="Не конкретно файл айди, а айди записи внутри альбома для этого файла")
