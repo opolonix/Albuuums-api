@@ -44,6 +44,11 @@ async def new_album(album: Annotated[schemes.albums.New, Depends()], response: R
     father.session.add(access)
     father.session.commit()
 
+    base.get_album(meta.id)
+    base.get_album_tags(meta.id)
+    
+    father.session.commit()
+
     return schemes.albums.fullAlbum(id=meta.id, album_cover_id=None, private=album.private, editor=True, description=meta.description, files=[], tags=[])
 
 @router.get("/get-my-albums")
@@ -59,10 +64,10 @@ async def getting_your_albums(response: Response, request: Request) -> schemes.a
     albums = []
 
     for meta in album_metas:
-        tags = father.session.query(base.get_album_tags(meta.id)).all()
+        # tags = father.session.query(base.get_album_tags(meta.id)).all()
         avatar = father.session.query(base.get_album(meta.id)).first()
-        tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
-        albums.append(schemes.albums.Album(id=meta.id, album_cover_id=avatar, private=meta.private, editor=True, description=meta.description, tags=tags))
+        # tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
+        albums.append(schemes.albums.Album(id=meta.id, album_cover_id=avatar, private=meta.private, editor=True, description=meta.description, tags=[]))
 
     return schemes.albums.Albums(albums=albums)
 
