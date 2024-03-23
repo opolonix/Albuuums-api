@@ -42,10 +42,10 @@ class files:
     class File(BaseModel):
         id: int
         name: str | None = None
-        created_from: datetime
+        created_at: datetime
         created_by: int
-        file_extension: str
-        description: str | None = None
+        type: str
+        public: bool
 
     class Drop(BaseModel):
         album_id: int
@@ -59,7 +59,12 @@ class albums:
         description: str | None = None
         private: bool = True
 
-    
+    class Pin(BaseModel):
+        album_id: int
+        file_id: int
+        name: str = None
+        tags: list[str] | None = None
+
     class Album(BaseModel):
         id: int
         album_cover_id: int | None = None

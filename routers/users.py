@@ -37,7 +37,7 @@ async def edit_personal_data(data: Annotated[schemes.users.Edit, Depends()], req
         if Father().session.query(base.User).filter(base.User.username == data.username).first():
             raise HTTPException(status_code=400, detail="Username already exists")
         user.username = data.username
-    if data.name: 
+    if data.name:
         if len(user.name) > 16:
             raise HTTPException(status_code=400, detail="Name too long")
         if len(user.name) == 0:

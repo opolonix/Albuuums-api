@@ -14,8 +14,9 @@ class File(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     hash = Column(String(128))
-    name = Column(String(length=128, collation='utf8mb4_general_ci'))
+    name = Column(String(length=256, collation='utf8mb4_general_ci'))
     type =  Column(String(length=16, collation='utf8mb4_general_ci'))
+    public = Column(BOOLEAN, default=False)
     
     created_at = Column(DateTime, default=lambda: datetime.now(pytz.timezone('Europe/Moscow')))
     created_by = Column(Integer)
