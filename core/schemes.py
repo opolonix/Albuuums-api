@@ -63,7 +63,7 @@ class albums:
         album_id: int
         file_id: int
         name: str = None
-        tags: list[str] | None = None
+        tags: List[str] = []
 
     class Album(BaseModel):
         id: int

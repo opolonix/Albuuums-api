@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
 
     Father().db = await aiosqlite.connect("data/sessions.db")
 
-    Father().engine = create_engine(MYSQLSERVER_URL, echo=True)
+    Father().engine = create_engine(MYSQLSERVER_URL)
     Father().sessionmaker = sessionmaker(bind=Father().engine)
     Father().session = Father().sessionmaker()
 

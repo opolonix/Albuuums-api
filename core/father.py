@@ -36,7 +36,6 @@ class Father:
     
     async def verify(self, token, request, response):    
         
-        token = request.cookies.get("x-auth-key")
         id_auth = await self.is_authorized(token)
         if not id_auth: 
             if token: response.delete_cookie("x-auth-key")

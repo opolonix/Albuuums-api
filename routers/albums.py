@@ -67,9 +67,10 @@ async def getting_your_albums(response: Response, request: Request):
     for meta in album_metas:
         # avatar = father.session.query(base.get_album(meta.id)).first()
         avatar = father.session.query(base.get_album(meta.id)).first()
+        print(avatar)
         tags = father.session.query(base.get_album_tags(meta.id)).all()
         tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
-        albums_list.append(schemes.albums.Album(id=meta.id, album_cover_id=avatar, name=meta.name, private=meta.private, editor=True, description=meta.description, tags=tags))
+        albums_list.append(schemes.albums.Album(id=meta.id, album_cover_id=avatar.file_id if avatar else None, name=meta.name, private=meta.private, editor=True, description=meta.description, tags=tags))
     return albums_list
     # return schemes.albums.Albums(albums=albums)
 
@@ -90,7 +91,7 @@ async def getting_info(album_id: str, response: Response, request: Request) -> s
     tags = father.session.query(base.get_album_tags(meta.id)).all()
     files = father.session.query(base.get_album(meta.id)).all()
     tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
-    files = [schemes.albums.File(id=f.id, file_id=f.id, name=f.name, type=f.type, pinned_by=f.pinned_by, pinned_at=f.pinned_at, tags=[]) for f in files]
+    files = [schemes.albums.File(id=f.id, file_id=f.file_id, name=f.name, type=f.type, pinned_by=f.pinned_by, pinned_at=f.pinned_at, tags=tags) for f in files]
 
     return schemes.albums.fullAlbum(
         id=meta.id, 
@@ -111,7 +112,7 @@ async def getting_info(pin: Annotated[schemes.albums.Pin, Depends()], response: 
 
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
-
+    
     album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(
         base.albumsAccess.client_id == user.id
     ).first()

@@ -17,6 +17,7 @@ router = APIRouter(
 @router.get("/get-me")
 async def get_yourself(request: Request, response: Response) -> schemes.users.User:
     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+    
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -26,7 +27,7 @@ async def get_yourself(request: Request, response: Response) -> schemes.users.Us
 @router.get("/edit-me")
 async def edit_personal_data(data: Annotated[schemes.users.Edit, Depends()], request: Request, response: Response) -> schemes.users.User:
     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
-
+    
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
 
