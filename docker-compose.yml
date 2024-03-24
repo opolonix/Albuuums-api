@@ -1,10 +1,42 @@
 version: '3'
+
 services:
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+  mysql:
+    image: mysql:latest
+    restart: always
+    ports:
+      - "7723:3306"
+    environment:
+      MYSQL_DATABASE: albuuums
+      MYSQL_USER: albuuums
+      MYSQL_PASSWORD: TE9n9AmaKu87j243
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      MYSQL_HOST: "%"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --init-file /docker-entrypoint-initdb.d/init.sql
+
+  albums-api:
+    build: ./albuuums-api
+    restart: always
     ports:
       - "7724:80"
-    environment:
-      PMA_HOST: mysqlCon
     volumes:
-      - /root/config.inc.php:/etc/phpmyadmin/config.inc.php:ro
+      - ./data/sessions.db:/app/data/sessions.db
+      - ./files:/app/files
+    depends_on:
+      - mysql
+
+  albums-frontend:
+    build: ./albuuums-frontend
+    restart: always
+    ports:
+      - "7725:3000"
+    depends_on:
+      - mysql
+      - albums-api
+
+volumes:
+  mysql_data:

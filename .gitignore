@@ -3,3 +3,4 @@ venv
 data/*
 files/*
 core/config.py
+docker-compose.yml

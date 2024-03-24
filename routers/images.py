@@ -177,40 +177,40 @@ async def upload_file(
 
     return schemes.files.File(id=db_file.id, name=db_file.name, created_at=db_file.created_at, created_by=db_file.created_by, type=db_file.type, public=public)
 
-@router.post("/pin")
-async def upload_file(
-        pin_to: int,
-        file_id: int,
-        response: Response, request: Request, 
-        tags: List[str] = []
-    ) -> schemes.files.File:
-    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+# @router.post("/pin")
+# async def upload_file(
+#         pin_to: int,
+#         file_id: int,
+#         response: Response, request: Request, 
+#         tags: List[str] = []
+#     ) -> schemes.files.File:
+#     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
 
-    try: user: base.User = await father.verify(token=token, request=request, response=response)
-    except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
+#     try: user: base.User = await father.verify(token=token, request=request, response=response)
+#     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
 
-    db_file: base.File = father.session.query(base.File).filter(base.File.id == file_id).first()
-    if not db_file:
-        raise HTTPException(status_code=400, detail="The file does not exist")
-    elif not os.path.exists(f'files/{hex(db_file.id)}'):
-        raise HTTPException(status_code=400, detail="The file does not exist")
+#     db_file: base.File = father.session.query(base.File).filter(base.File.id == file_id).first()
+#     if not db_file:
+#         raise HTTPException(status_code=400, detail="The file does not exist")
+#     elif not os.path.exists(f'files/{hex(db_file.id)}'):
+#         raise HTTPException(status_code=400, detail="The file does not exist")
 
-    # добавить проверку прав доступа на просмотр файла
+#     # добавить проверку прав доступа на просмотр файла
 
-    if not father.session.query(base.albumsMeta).filter(base.albumsMeta.id == pin_to).first():
-        raise HTTPException(status_code=400, detail="The album does not exist")
+#     if not father.session.query(base.albumsMeta).filter(base.albumsMeta.id == pin_to).first():
+#         raise HTTPException(status_code=400, detail="The album does not exist")
 
-    """Прикрепление файла в альбом, добавляется в pin_to и в родительский"""
+#     """Прикрепление файла в альбом, добавляется в pin_to и в родительский"""
 
-    new_pin = base.get_album(pin_to)(file_id=db_file.id, name=db_file.name, type=db_file.type, pinned_by=user.id)
-    father.session.add(new_pin)
-    father.session.commit()
+#     new_pin = base.get_album(pin_to)(file_id=db_file.id, name=db_file.name, type=db_file.type, pinned_by=user.id)
+#     father.session.add(new_pin)
+#     father.session.commit()
 
-    tag = base.get_album_tags(album_id)
-    tags = list(set([i for i in tags if re.fullmatch(r'[a-zа-я\-\_\*\+\.]{1,16}', i, re.I)]))
-    for t in tags:
-        father.session.add(tag(file_album_id=new_pin.id, tag=t, added_by=user.id))
-    father.session.commit()
+#     tag = base.get_album_tags(album_id)
+#     tags = list(set([i for i in tags if re.fullmatch(r'[a-zа-я\-\_\*\+\.]{1,16}', i, re.I)]))
+#     for t in tags:
+#         father.session.add(tag(file_album_id=new_pin.id, tag=t, added_by=user.id))
+#     father.session.commit()
 
 
-    return schemes.files.File(id=db_file.id, name=db_file.name, created_at=db_file.created_at, created_by=db_file.created_by, type=db_file.type, public=public)
+#     return schemes.files.File(id=db_file.id, name=db_file.name, created_at=db_file.created_at, created_by=db_file.created_by, type=db_file.type, public=public)
