@@ -8,7 +8,7 @@ import core.schemes as schemes
 from core.father import Father
 from models import base
 from fastapi.responses import FileResponse
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 
 father = Father()
@@ -25,19 +25,41 @@ async def view_file(file_id: int, response: Response, request: Request) -> schem
 
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: user = None
+
     if not os.path.exists(f'files/{hex(file_id)}'): raise HTTPException(400, "invalid file_id")
+
     if user:
         db_file: base.File = father.session.query(base.File).filter(
-            or_(base.File.created_by == user.id, base.File.public == True)
+            and_(
+                or_(base.File.created_by == user.id, base.File.public == True),
+                base.File.id == file_id
+            )
+            
         ).first()
     else:
-        db_file: base.File = father.session.query(base.File).filter(base.File.public == True).first()
+        db_file: base.File = father.session.query(base.File).filter(base.File.public == True, base.File.id == file_id).first()
 
     if db_file:
-        file_path = f'files/{hex(db_file.id)}'
-        filename = f'{db_file.name}.{db_file.type}'
-        media_type = 'image/jpeg' if db_file.type == 'jpg' else 'image/png' if db_file.type == 'png' else 'video/mp4'
-        return StreamingResponse(open(file_path, "rb"), media_type=media_type)
+        file_type = db_file.type.lower()
+        # filename = f'{db_file.name}.{db_file.type}'
+        media_type = (
+            'image/jpeg' if file_type in ['jpg', 'jpeg']
+            else 'image/png' if file_type == 'png'
+            else 'video/mp4' if file_type == 'mp4'
+            else 'video/quicktime' if file_type in ['mov', 'qt']
+            else 'image/gif' if file_type == 'gif'
+            else 'image/bmp' if file_type in ['bmp', 'dib']
+            else 'image/webp' if file_type == 'webp'
+            else 'image/tiff' if file_type in ['tiff', 'tif']
+            else 'image/x-icon' if file_type == 'ico'
+            else 'image/svg+xml' if file_type in ['svg', 'svgz']
+            else 'video/webm' if file_type == 'webm'
+            else 'video/ogg' if file_type == 'ogg'
+            else 'video/avi' if file_type == 'avi'
+            else 'application/pdf' if file_type == 'pdf'
+            else 'application/octet-stream'  # Общий тип для остальных файлов
+        )
+        return StreamingResponse(open(f'files/{hex(file_id)}', "rb"), media_type=media_type)
     else:
         raise HTTPException(400, "invalid file_id")
 
