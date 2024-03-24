@@ -6,6 +6,7 @@ import core.schemes as schemes
 from core.father import Father
 from models import base
 from sqlalchemy import and_, or_
+from sqlalchemy import create_engine, MetaData, Table
 father = Father()
 
 router = APIRouter(
@@ -52,7 +53,7 @@ async def new_album(album: Annotated[schemes.albums.New, Depends()], response: R
     return schemes.albums.fullAlbum(id=meta.id, album_cover_id=None, private=album.private, editor=True, name=meta.name, description=meta.description, files=[], tags=[])
 
 @router.get("/get-my-albums")
-async def getting_your_albums(response: Response, request: Request):
+async def getting_your_albums(response: Response, request: Request) -> list[schemes.albums.Album]:
 
     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
 
@@ -66,15 +67,15 @@ async def getting_your_albums(response: Response, request: Request):
     for meta in album_metas:
         # avatar = father.session.query(base.get_album(meta.id)).first()
         avatar = father.session.query(base.get_album(meta.id)).first()
-        print(avatar)
         tags = father.session.query(base.get_album_tags(meta.id)).all()
         tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
+        
         albums_list.append(schemes.albums.Album(id=meta.id, album_cover_id=avatar.file_id if avatar else None, name=meta.name, private=meta.private, editor=True, description=meta.description, tags=tags))
     return albums_list
     # return schemes.albums.Albums(albums=albums)
 
 @router.get("/{album_id}")
-async def getting_info(album_id: str, response: Response, request: Request) -> schemes.albums.fullAlbum:
+async def getting_info(album_id: int, response: Response, request: Request) -> schemes.albums.fullAlbum:
 
     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
 
@@ -104,31 +105,66 @@ async def getting_info(album_id: str, response: Response, request: Request) -> s
     )
 
 @router.delete("/drop/{album_id}")
-async def drop_album(album_id: str, response: Response, request: Request) -> schemes.albums.fullAlbum:
+async def drop_album(album_id: int, response: Response, request: Request):
 
     token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
 
     try: user: base.User = await father.verify(token=token, request=request, response=response)
     except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
 
-    album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(base.albumsAccess.client_id == user.id, base.albumsAccess.album_id == album_id).first()
+    album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(base.albumsAccess.accessed_by == user.id, base.albumsAccess.album_id == album_id).first()
 
-    if not album_access: raise HTTPException(status_code=403, detail="There is no access or the album does not exist")
+    """    
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        album_id: int = Column(Integer)
+        client_id: int = Column(Integer)
+        editor: bool = Column(BOOLEAN, default=False)
+        viewer: bool = Column(BOOLEAN, default=True)
+        created_at = Column(DateTime, default=datetime.now(pytz.timezone('Europe/Moscow')))
+        accessed_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    """
 
-    meta: base.albumsMeta = father.session.query(base.albumsMeta).filter(base.albumsMeta.id == album_access.album_id).first()
 
-    tags = father.session.query(base.get_album_tags(meta.id)).all()
-    files = father.session.query(base.get_album(meta.id)).all()
-    tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
-    files = [schemes.albums.File(id=f.id, file_id=f.file_id, name=f.name, type=f.type, pinned_by=f.pinned_by, pinned_at=f.pinned_at, tags=tags) for f in files]
+    if user.base_album == album_id: raise HTTPException(status_code=400, detail="You cannot delete the base album")
+    if not album_access: raise HTTPException(status_code=400, detail="There is no access or the album does not exist")
 
-    return schemes.albums.fullAlbum(
-        id=meta.id, 
-        album_cover_id=files[0].file_id if len(files) != 0 else None, 
-        private=meta.private, 
-        editor=album_access.editor, 
-        name=meta.name, 
-        description=meta.description, 
-        files=files,
-        tags=tags
-    )
+    father.session.query(base.albumsMeta).filter(base.albumsMeta.id == album_access.album_id).delete()
+    father.session.query(base.albumsAccess).filter(base.albumsAccess.accessed_by == user.id, base.albumsAccess.album_id == album_id).delete()
+
+    # al_files = base.get_album(album_id)
+    # al_tags = base.get_album_tags(album_id)
+
+    # father.session.query(al_files).delete()
+
+    # я не знаю почему но удаление таблиц стопорит всю программу, поэтому в бд остаются таблицы, по которым можно восстановить содержимое альбома, но не его владельца
+    # al_files.__table__.drop(bind=father.engine)
+    # al_tags.__table__.drop(bind=father.engine)
+
+    father.session.commit()
+
+    return True
+
+
+@router.delete("/drop/{album_id}/file/{file_id}")
+async def delete_file_from_album(album_id: int, file_id: int, response: Response, request: Request):
+
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+
+    try: user: base.User = await father.verify(token=token, request=request, response=response)
+    except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
+
+    album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(base.albumsAccess.client_id == user.id, base.albumsAccess.album_id == album_id, base.albumsAccess.editor == True).first()
+
+    if not album_access: raise HTTPException(status_code=400, detail="There is no access or the album does not exist")
+
+    al_files = base.get_album(album_id)
+    
+    father.session.query(al_files).filter(al_files.id == file_id).delete()
+
+    # я не знаю почему но удаление таблиц стопорит всю программу, поэтому в бд остаются таблицы, по которым можно восстановить содержимое альбома, но не его владельца
+    # al_files.__table__.drop(bind=father.engine)
+    # al_tags.__table__.drop(bind=father.engine)
+
+    father.session.commit()
+
+    return True

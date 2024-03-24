@@ -9,8 +9,8 @@ from core.father import Father
 from models import base
 from fastapi.responses import FileResponse
 from sqlalchemy import or_, and_
-
-
+from urllib.parse import quote
+import re
 father = Father()
 
 router = APIRouter(
@@ -41,7 +41,7 @@ async def view_file(file_id: int, response: Response, request: Request) -> schem
 
     if db_file:
         file_type = db_file.type.lower()
-        # filename = f'{db_file.name}.{db_file.type}'
+        filename = quote(f'{db_file.name}.{db_file.type}')
         media_type = (
             'image/jpeg' if file_type in ['jpg', 'jpeg']
             else 'image/png' if file_type == 'png'
@@ -59,12 +59,21 @@ async def view_file(file_id: int, response: Response, request: Request) -> schem
             else 'application/pdf' if file_type == 'pdf'
             else 'application/octet-stream'  # Общий тип для остальных файлов
         )
-        return StreamingResponse(open(f'files/{hex(file_id)}', "rb"), media_type=media_type)
+            
+        def generate():
+            with open(f"files/{hex(file_id)}", "rb") as file:
+                chunk = file.read(1024)
+                while chunk:
+                    yield chunk
+                    chunk = file.read(1024)
+        print(filename)
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        response.headers["Content-Type"] = media_type
+    
+        return StreamingResponse(generate(), media_type=media_type)
+        # return StreamingResponse(open(f'files/{hex(file_id)}', "rb"), media_type=media_type)
     else:
         raise HTTPException(400, "invalid file_id")
-
-
-
 
 @router.post("/upload")
 async def upload_file(
@@ -103,20 +112,22 @@ async def upload_file(
     album_id = pin_to if pin_to else user.base_album
     if not father.session.query(base.albumsMeta).filter(base.albumsMeta.id == album_id).first():
         album_id = user.base_album
-
-    """Прикрепление файла в альбом"""
-
-    new_pin = base.get_album(album_id)(file_id=db_file.id, name=db_file.name, type=db_file.type, pinned_by=user.id)
-    father.session.add(new_pin)
-    father.session.commit()
-
-    tag = base.get_album_tags(album_id)
-    tags = list(set([i for i in tags if len(i) != 0 and len(i) <= 16]))
-    for t in tags:
-        father.session.add(tag(file_album_id=new_pin.id, tag=t, added_by=user.id))
-    father.session.commit()
+    albums_id = [album_id] if album_id == user.base_album else [album_id, user.base_album]
 
     if not os.path.exists(f'files/{hex(db_file.id)}'): open(f'files/{hex(db_file.id)}', "wb+").write(f)
+
+    """Прикрепление файла в альбом, добавляется в pin_to и в родительский"""
+    for album_id in albums_id:
+        new_pin = base.get_album(album_id)(file_id=db_file.id, name=db_file.name, type=db_file.type, pinned_by=user.id)
+        father.session.add(new_pin)
+        father.session.commit()
+
+        tag = base.get_album_tags(album_id)
+        tags = list(set([i for i in tags if re.fullmatch(r'[a-zа-я\-\_\*\+\.]{1,16}', i, re.I)]))
+        for t in tags:
+            father.session.add(tag(file_album_id=new_pin.id, tag=t, added_by=user.id))
+        father.session.commit()
+
 
     return schemes.files.File(id=db_file.id, name=db_file.name, created_at=db_file.created_at, created_by=db_file.created_by, type=db_file.type, public=public)
 

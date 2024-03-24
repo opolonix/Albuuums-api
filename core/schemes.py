@@ -81,6 +81,7 @@ class albums:
         album_cover_id: int | None = None
         private: bool = True
         editor: bool = False
+        name: str | None = None
         description: str | None = None
         
         files: List['albums.File']
