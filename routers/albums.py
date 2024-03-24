@@ -27,8 +27,7 @@ async def new_album(album: Annotated[schemes.albums.New, Depends()], response: R
         created_by = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
         description = Column(String(512), default=None)
     """
-    album.name
-    meta = base.albumsMeta(private=album.private, created_by=user.id, description=album.description)
+    meta = base.albumsMeta(private=album.private, created_by=user.id, name=album.name, description=album.description)
     father.session.add(meta)
     father.session.commit()
     """
@@ -103,58 +102,3 @@ async def getting_info(album_id: str, response: Response, request: Request) -> s
         files=files,
         tags=tags
     )
-
-
-@router.get("/pin")
-async def getting_info(pin: Annotated[schemes.albums.Pin, Depends()], response: Response, request: Request) -> schemes.albums.fullAlbum:
-
-    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
-
-    try: user: base.User = await father.verify(token=token, request=request, response=response)
-    except HTTPException: raise HTTPException(status_code=403, detail="Not authorized")
-    
-    album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(
-        base.albumsAccess.client_id == user.id
-    ).first()
-
-    if not album_access: raise HTTPException(status_code=403, detail="There is no access or the album does not exist")
-    db_file: base.File = father.session.query(base.File).filter(
-        and_(
-            or_(base.File.created_by == user.id, base.File.public == True),
-            base.File.id == pin.file_id
-        )
-    ).first()
-
-    if not db_file: raise HTTPException(status_code=403, detail="There is no access or the file does not exist")
-
-    new_pin = base.get_album(pin.album_id)(file_id=db_file.id, name=pin.name if pin.name else db_file.name, type=db_file.type, pinned_by=user.id)
-    father.session.add(new_pin)
-    father.session.commit()
-
-    if pin.tags:
-        tag = base.get_album_tags(pin.album_id)
-        tags = list(set([i for i in tags if len(i) != 0]))
-        for t in tags:
-            father.session.add(tag(file_album_id=new_pin.id, tag=t, added_by=user.id))
-        father.session.commit()
-
-
-
-    meta: base.albumsMeta = father.session.query(base.albumsMeta).filter(base.albumsMeta.id == album_access.album_id).first()
-
-    tags = father.session.query(base.get_album_tags(meta.id)).all()
-    files = father.session.query(base.get_album(meta.id)).all()
-    tags = [schemes.albums.Tags(tag=t.tag, file_album_id=t.file_album_id) for t in tags]
-    files = [schemes.albums.File(id=f.id, file_id=f.id, name=f.name, type=f.type, pinned_by=f.pinned_by, pinned_at=f.pinned_at, tags=[]) for f in files]
-
-    return schemes.albums.fullAlbum(
-        id=meta.id, 
-        album_cover_id=files[0].file_id if len(files) != 0 else None, 
-        private=meta.private, 
-        editor=album_access.editor, 
-        name=meta.name, 
-        description=meta.description, 
-        files=files,
-        tags=tags
-    )
-
