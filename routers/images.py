@@ -11,6 +11,10 @@ from fastapi.responses import FileResponse
 from sqlalchemy import or_, and_
 from urllib.parse import quote
 import re
+
+import io
+import zipfile
+
 father = Father()
 
 router = APIRouter(
@@ -66,7 +70,7 @@ async def view_file(file_id: int, response: Response, request: Request) -> schem
                 while chunk:
                     yield chunk
                     chunk = file.read(1024)
-        print(filename)
+
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         response.headers["Content-Type"] = media_type
     
@@ -74,6 +78,55 @@ async def view_file(file_id: int, response: Response, request: Request) -> schem
         # return StreamingResponse(open(f'files/{hex(file_id)}', "rb"), media_type=media_type)
     else:
         raise HTTPException(400, "invalid file_id")
+@router.post("/download-files")
+async def download_files(
+        response: Response, request: Request, 
+        files_ids: List[int]
+    ):
+    memory_zip = io.BytesIO()
+    in_zip = []
+    records = father.session.query(base.File).filter(base.File.id.in_(files_ids)).all()
+    with zipfile.ZipFile(memory_zip, 'w') as zipf:
+        for file in records:
+            if os.path.exists(f'files/{hex(file.id)}') and file.id not in in_zip:
+            # Добавление файла в архив
+                in_zip.append(file.id)
+                zipf.write(f'files/{hex(file.id)}', arcname=f'{file.name}.{file.type}')
+    memory_zip.seek(0)
+    
+    # Отправка архива клиенту как потокового ответа
+    return StreamingResponse(iter([memory_zip.getvalue()]), media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=FILES.zip"})
+
+@router.get("/download-album/{album_id}")
+async def download_album(
+        album_id: int,
+        response: Response, request: Request, 
+    ):
+
+    token = request.cookies.get("x-auth-key") if not request.headers.get("x-auth-key") else request.headers.get("x-auth-key")
+    try: user: base.User = await father.verify(token=token, request=request, response=response)
+    except HTTPException: user = None
+
+    meta: base.albumsMeta = father.session.query(base.albumsMeta).filter(base.albumsMeta.id == album_id).first()
+    if not meta: raise HTTPException(400, "invalid album_id")
+    if not meta.private or user:
+        album_access: base.albumsAccess = father.session.query(base.albumsAccess).filter(base.albumsAccess.client_id == user.id, base.albumsAccess.album_id == album_id).first()
+        if album_access:
+            files_meta = father.session.query(base.get_album(album_id)).all()
+            memory_zip = io.BytesIO()
+            in_zip = []
+            with zipfile.ZipFile(memory_zip, 'w') as zipf:
+                for file_meta in files_meta:
+                    if os.path.exists(f'files/{hex(file_meta.file_id)}') and file_meta.file_id not in in_zip:
+                    # Добавление файла в архив
+                        in_zip.append(file_meta.file_id)
+                        zipf.write(f'files/{hex(file_meta.file_id)}', arcname=f'{file_meta.name}.{file_meta.type}')
+            memory_zip.seek(0)
+            
+            # Отправка архива клиенту как потокового ответа
+            return StreamingResponse(iter([memory_zip.getvalue()]), media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=ALBUM{album_id}.zip"})
+    
+    raise HTTPException(status_code=400, detail="There is no access or the album does not exist")
 
 @router.post("/upload")
 async def upload_file(
@@ -130,7 +183,3 @@ async def upload_file(
 
 
     return schemes.files.File(id=db_file.id, name=db_file.name, created_at=db_file.created_at, created_by=db_file.created_by, type=db_file.type, public=public)
-
-@router.delete("/drop/{id}")
-async def drop_file(id):
-    return HTTPException(status_code=200, detail="Successfully deleted")
